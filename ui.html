@@ -1,0 +1,6 @@
+<img id="stream"></img>
+<script>
+    const img = document.getElementById("stream");
+    var ws = new WebSocket("ws://localhost:1234/howdy");
+    ws.onmessage = e => img.src = e.data;
+</script>
