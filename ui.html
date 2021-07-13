@@ -1,6 +1,12 @@
 <img id="stream"></img>
 <script>
     const img = document.getElementById("stream");
-    var ws = new WebSocket("ws://localhost:1234/howdy");
-    ws.onmessage = e => img.src = e.data;
+    var ws = new WebSocket("ws://localhost:1234/");
+    ws.onmessage = e => {
+        img.src = e.data;
+    }
+    ws.onopen = e => {
+        // ws.send("TRAIN");
+        setInterval(() => ws.send("STREAM"), 40);
+    }
 </script>

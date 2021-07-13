@@ -8,6 +8,9 @@ import base64
 from PIL import Image
 from io import BytesIO
 
+from datetime import datetime
+import time
+
 
 def encode_np_array(A, fmt='jpeg'):
      image = Image.fromarray(A)
@@ -18,18 +21,38 @@ def encode_np_array(A, fmt='jpeg'):
      return prefix + b64
 
 
-def postprocess(frame, size=240):
+def postprocess(frame, size=240, to_rgb=True):
     H, W, _ = frame.shape
     frame = cv2.resize(frame, (size, int(size * H/W)))
-    return frame[:, :, ::-1]
+    if to_rgb:
+        frame = frame[:, :, ::-1]
+    return frame
+
+
+def save_train_data(webcam, sample_rate=1, duration=5):
+    for _ in range(duration // sample_rate):
+        success, raw_frame = webcam.read()
+        if success:
+            frame = postprocess(raw_frame, to_rgb=False)
+            timestamp = datetime.now().strftime("%Y_%m_%d_%H:%M:%S")
+            path = f"data/{timestamp}.jpg"
+            print(f'saving... {path}, {frame.shape}')
+            cv2.imwrite(path, frame)
+            time.sleep(sample_rate)
 
 
 async def ws_handler(ws, path):
-    vidcap = cv2.VideoCapture(0)
+    webcam = cv2.VideoCapture(0)
     while True:
-        _, raw_frame = vidcap.read()
-        frame = postprocess(raw_frame)
-        await ws.send(encode_np_array(frame))
+        message = await ws.recv()
+
+        if message == "STREAM":
+            _, raw_frame = webcam.read()
+            frame = postprocess(raw_frame)
+            await ws.send(encode_np_array(frame))
+
+        elif message == "TRAIN":
+            save_train_data(webcam, 1, 5)
 
 
 start = websockets.serve(ws_handler, "localhost", 1234)
