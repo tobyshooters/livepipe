@@ -1,12 +1,14 @@
-<img id="stream"></img>
+<img id="data"></img>
 <script>
-    const img = document.getElementById("stream");
+    const img = document.getElementById("data");
+
+    let data = {};
     var ws = new WebSocket("ws://localhost:1234/");
     ws.onmessage = e => {
-        img.src = e.data;
+        data = {...data, ...JSON.parse(e.data)};
+        img.src = data.frame;
     }
     ws.onopen = e => {
-        // ws.send("TRAIN");
-        setInterval(() => ws.send("STREAM"), 40);
+        setInterval(() => ws.send("GET_DATA"), 100);
     }
 </script>
