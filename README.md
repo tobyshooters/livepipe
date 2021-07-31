@@ -3,4 +3,4 @@
 1. `pipenv install -r requirements.txt`
 2. `python3 server.py`
 3. open <http://localhost:1234>
-4. edit `stage.py` or `ui.html` and watch it reload!
+4. edit `processing.py` or `ui.html` and watch it reload!
