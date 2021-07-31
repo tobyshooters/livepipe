@@ -43,7 +43,7 @@ def encode(A, type):
 
 
 import stage
-index_watcher = Watcher("index.html")
+ui_watcher = Watcher("ui.html")
 stage_watcher = Watcher("stage.py")
 
 
@@ -66,7 +66,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             self.write_message(json.dumps(get_data()))
 
         elif message == "reload?":
-            if index_watcher.has_changed():
+            if ui_watcher.has_changed():
                 print("Reloading UI")
                 self.write_message("reload")
 
@@ -83,7 +83,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 if __name__ == "__main__":
     app = tornado.web.Application([
         ("/ws", WSHandler),
-        ("/(.*)", tornado.web.StaticFileHandler, {"path": "./", "default_filename": "index.html"}), 
+        ("/(.*)", tornado.web.StaticFileHandler, {"path": "./", "default_filename": "ui.html"}), 
     ])
     app.listen(1234)
     tornado.ioloop.IOLoop.current().start()
