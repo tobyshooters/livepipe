@@ -1,22 +1,24 @@
 import numpy as np
 
-# Decorator to localize encoding and naming close to function definitions
-# rather than explicitly in a data structure.
 interactions = []
-def interact(annotations):
+def interact(encoding):
     def decorator(fn):
-        interactions.append({**annotations, "function": fn})
+        interactions.append({
+            "name": fn.__name__,
+            "function": fn,
+            "encoding": encoding,
+        })
         return fn
     return decorator
 
 
-@interact({"name": "someNumbers", "encoding": "tensor"})
-def generate_tensor():
+@interact(encoding="tensor")
+def someNumbers():
     return np.random.randn(10);
 
 
-@interact({"name": "frame", "encoding": "image"})
-def generate_img():
+@interact(encoding="image")
+def frame():
     img = np.random.randn(300, 300, 3)
     img -= img.min()
     img /- img.max()
