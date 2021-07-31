@@ -1,8 +1,9 @@
 import os 
 import importlib
 
-import asyncio
-import websockets
+import tornado.ioloop
+import tornado.web
+import tornado.websocket
 
 import json
 import base64
@@ -36,38 +37,53 @@ def encode_np_array(A, fmt='jpeg'):
 def encode(A, type):
     if type == "image":
         return encode_np_array(A)
+    elif type == "tensor":
+        return A.tolist()
     return A
 
 
 import stage
-watcher = Watcher("stage.py")
+index_watcher = Watcher("index.html")
+stage_watcher = Watcher("stage.py")
 
-async def ws_handler(ws, path):
-    while True:
-        message = await ws.recv()
-        if message == "GET_DATA":
 
-            if watcher.has_changed():
+def get_data():
+    data = {}
+    for value in stage.interactions:
+        try:
+            print(f"Running {value}")
+            output = value["function"]()
+            output = encode(output, value["encoding"])
+            data[value["name"]] = output
+        except Exception as e:
+            print(e)
+    return data
+
+
+class WSHandler(tornado.websocket.WebSocketHandler):
+    def on_message(self, message):
+        if message == "initialize":
+            self.write_message(json.dumps(get_data()))
+
+        elif message == "reload?":
+            if index_watcher.has_changed():
+                print("Reloading UI")
+                self.write_message("reload")
+
+            elif stage_watcher.has_changed():
                 try:
                     print("Reloading stage")
                     importlib.reload(stage)
                 except Exception as e:
                     print(e)
-            
-                data = {}
-                for value in stage.run:
-                    try:
-                        output = value["function"]()
-                        output = encode(output, value["type"])
-                        data[value["name"]] = output
-                    except Exception as e:
-                        print(e)
 
-                await ws.send(json.dumps(data))
+                self.write_message(json.dumps(get_data()))
 
 
-start = websockets.serve(ws_handler, "localhost", 1234)
-
-eloop = asyncio.get_event_loop()
-eloop.run_until_complete(start)
-eloop.run_forever()
+if __name__ == "__main__":
+    app = tornado.web.Application([
+        ("/ws", WSHandler),
+        ("/(.*)", tornado.web.StaticFileHandler, {"path": "./", "default_filename": "index.html"}), 
+    ])
+    app.listen(1234)
+    tornado.ioloop.IOLoop.current().start()

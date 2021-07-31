@@ -1,0 +1,26 @@
+<img id="data"></img>
+
+<script>
+    const render = (data) => {
+        const img = document.getElementById("data");
+        img.src = data.frame;
+
+        const numbers = document.getElementById("numbers");
+        console.log(data.someNumbers);
+    }
+
+    let data = {};
+    var ws = new WebSocket("ws://localhost:1234/ws");
+    ws.onmessage = e => {
+        if (e.data == "reload") {
+            window.location.reload();
+        } else {
+            data = {...data, ...JSON.parse(e.data)};
+            render(data);
+        }
+    }
+    ws.onopen = e => {
+        ws.send("initialize");
+        setInterval(() => ws.send("reload?"), 100);
+    }
+</script>
