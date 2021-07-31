@@ -42,14 +42,14 @@ def encode(A, type):
     return A
 
 
-import stage
+import processing
 ui_watcher = Watcher("ui.html")
-stage_watcher = Watcher("stage.py")
+processing_watcher = Watcher("processing.py")
 
 
 def get_data():
     data = {}
-    for value in stage.interactions:
+    for value in processing.interactions:
         try:
             print(f"Running {value}")
             output = value["function"]()
@@ -70,10 +70,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 print("Reloading UI")
                 self.write_message("reload")
 
-            elif stage_watcher.has_changed():
+            elif processing_watcher.has_changed():
                 try:
-                    print("Reloading stage")
-                    importlib.reload(stage)
+                    print("Reloading processing")
+                    importlib.reload(processing)
                 except Exception as e:
                     print(e)
 
