@@ -47,23 +47,28 @@ ui_watcher = Watcher("ui.html")
 processing_watcher = Watcher("processing.py")
 
 
-def get_data():
+def get_data(has_changed):
+    """
+    If file has changed, re-run all functions, otherwise only re-run functions
+    that have reload="always".
+    """
     data = {}
     for value in processing.interactions:
-        try:
-            print(f"Running {value}")
-            output = value["function"]()
-            output = encode(output, value["encoding"])
-            data[value["name"]] = output
-        except Exception as e:
-            print(e)
+        if has_changed or value["reload"] == "always":
+            try:
+                print(f"Running {value}")
+                output = value["function"]()
+                output = encode(output, value["encoding"])
+                data[value["name"]] = output
+            except Exception as e:
+                print(e)
     return data
 
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     def on_message(self, message):
         if message == "initialize":
-            self.write_message(json.dumps(get_data()))
+            self.write_message(json.dumps(get_data(has_changed=True)))
 
         elif message == "reload?":
             if ui_watcher.has_changed():
@@ -71,13 +76,16 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 self.write_message("reload")
 
             elif processing_watcher.has_changed():
+                print("Reloading processing")
                 try:
-                    print("Reloading processing")
                     importlib.reload(processing)
                 except Exception as e:
                     print(e)
 
-                self.write_message(json.dumps(get_data()))
+                self.write_message(json.dumps(get_data(has_changed=True)))
+
+            else:
+                self.write_message(json.dumps(get_data(has_changed=False)))
 
 
 if __name__ == "__main__":

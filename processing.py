@@ -1,12 +1,14 @@
 import numpy as np
+import cv2
 
 interactions = []
-def interact(encoding):
+def interact(encoding, reload=None):
     def decorator(fn):
         interactions.append({
             "name": fn.__name__,
             "function": fn,
             "encoding": encoding,
+            "reload": reload,
         })
         return fn
     return decorator
@@ -14,14 +16,15 @@ def interact(encoding):
 
 @interact(encoding="tensor")
 def someNumbers():
-    return np.random.randn(10);
+    return np.random.randint(2, size=10)
 
 
-@interact(encoding="image")
+reader = cv2.VideoCapture(0)
+
+@interact(encoding="image", reload="always")
 def frame():
-    img = np.random.randn(300, 300, 3)
-    img -= img.min()
-    img /- img.max()
-    img *= 255.
-    img = img.astype(np.uint8)
-    return img
+    _, frame = reader.read()
+    H, W = frame.shape[:2]
+    frame = cv2.resize(frame, (400, int(H/W * 400)))
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return frame
