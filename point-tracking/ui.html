@@ -1,0 +1,124 @@
+<video id="video"></video>
+<canvas id="canvas"></canvas>
+
+<script>
+
+    //////////////////////////////////////////////////////////////////////////
+    // Globals
+    //////////////////////////////////////////////////////////////////////////
+
+    let annotations = [
+        // {
+        //     "type": "client" | "server"
+        //     "timestamp": 0.01,
+        //     "x": 10,
+        //     "y": 11,
+        // }
+    ];
+    window.annotations = annotations;
+
+    //////////////////////////////////////////////////////////////////////////
+    // Websocket Handling
+    //////////////////////////////////////////////////////////////////////////
+
+    const send = (ws, d) => ws.send(JSON.stringify(d));
+
+    const ws = new WebSocket("ws://localhost:1234/ws");
+    ws.onmessage = e => {
+        const data = JSON.parse(e.data);
+
+        if (data.type == "LISTING") {
+
+            if (data["message"].length == 0) {
+                const p = document.createElement("p");
+                p.innerHTML = "Error: No video files were found in server's /fs"
+                document.body.appendChild(p);
+                return;
+            }
+
+            path = `fs/${data["message"][1]}`;
+            video.src = path;
+
+            send(ws, {
+                "type": "SELECTION",
+                "message": path,
+            })
+
+        } else if (data.type == "PROPAGATION") {
+            annotations = [
+                ...annotations,
+                ...data["message"]
+            ];
+            drawCanvas(ctx, video, annotations);
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Canvas and video loading
+    //////////////////////////////////////////////////////////////////////////
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext('2d');
+
+    const video = document.getElementById("video");
+    video.style.width = "300px";
+    video.controls = true;
+    video.autoplay = true;
+
+    video.addEventListener('loadedmetadata', () => {
+        canvas.width = Math.floor(video.videoWidth / 2);
+        canvas.height = Math.floor(video.videoHeight / 2);
+    });
+
+    //////////////////////////////////////////////////////////////////////////
+    // Interactions
+    //////////////////////////////////////////////////////////////////////////
+
+    const isPlaying = (video) => video.currentTime > 0 
+                              && !video.paused 
+                              && !video.ended 
+                              && video.readyState > 2;
+
+    const drawCanvas = (ctx, video, annotations) => {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        for (const {timestamp, x, y, type} of annotations) {
+            if (Math.abs(timestamp - video.currentTime) < 0.01) {
+                ctx.fillStyle = (type === "client") ? "#00AA00" : "#AA0000";
+                const cx = x * canvas.width;
+                const cy = y * canvas.height;
+                ctx.fillRect(cx - 3, cy - 3, 6, 6);
+            }
+        }
+    }
+
+    canvas.addEventListener('click', () => {
+        if (isPlaying(video)) return;
+
+        const rect = canvas.getBoundingClientRect()
+        const annotation = {
+            "type": "client",
+            "timestamp": video.currentTime,
+            "x": (event.clientX - rect.left) / canvas.width,
+            "y": (event.clientY - rect.top) / canvas.height,
+        }
+
+        // Update front-end
+        annotations.push(annotation)
+        drawCanvas(ctx, video, annotations);
+
+        // Update back-end
+        send(ws, {
+            type: "ANNOTATION",
+            message: annotation,
+        })
+    })
+
+    video.addEventListener('play', () => {
+        const step = () => {
+            drawCanvas(ctx, video, annotations);
+            requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    });
+
+</script>
