@@ -7,7 +7,7 @@ name = "pypi"
 opencv-python = "*"
 numpy = "*"
 websockets = "*"
-pillow = "*"
+pillow = ">=8.3.2"
 torch = "*"
 
 [dev-packages]
