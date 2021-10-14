@@ -1,0 +1,66 @@
+<style>
+body {
+    margin: 50px;
+    background-color: #fdf6e3;
+    font-family: monospace;
+    font-size: 18px;
+}
+#frame {
+    width: 240px;
+    height: 240px;
+}
+#name {
+    font-size: 8px;
+}
+</style>
+
+<center>
+    <p>Self-captcha</p>
+    <canvas id="frame" width=240 height=240></canvas>
+    <p id="name">Teach me to find you to enter.</p>
+</center>
+
+<script>
+    let image_id;
+    const c = document.getElementById("frame");
+    const ctx = c.getContext("2d");
+
+    const ws = new WebSocket("ws://localhost:1234");
+
+    ws.onopen = e => {
+        ws.send(JSON.stringify({type: "frame"}));
+    }
+
+    ws.onmessage = e => {
+        const data = JSON.parse(e.data);
+        image_id = data.name;
+
+        const image = new Image();
+        image.onload = () => {
+            ctx.clearRect(0, 0, c.width, c.height);
+            ctx.drawImage(image, 20, 20, 200, 200);
+
+            // Draw model prediction
+            ctx.fillStyle = 'red';
+            const x = 20 + Math.max(Math.min(200 * data.pred[0], 200), 0);
+            const y = 20 + Math.max(Math.min(200 * data.pred[1], 200), 0);
+            ctx.fillRect(x-2, y-2, 5, 5);
+        }
+        image.src = data.frame;
+    }
+
+    c.onclick = e => {
+        const pos = [
+            (e.offsetX - 20) / 200,
+            (e.offsetY - 20) / 200,
+        ]
+        ws.send(JSON.stringify({
+            type: "label",
+            data: {
+                pos: pos,
+                id: image_id,
+            }
+        }))
+        ws.send(JSON.stringify({type: "frame"}));
+    }
+</script>
