@@ -12,7 +12,7 @@ class WS(WebSocketServerProtocol):
         d = self.read(payload)
         if d["type"] == "frame":
             self.send({
-                "frame"
+                "frame": None,
             })
 
     def read(self, payload):

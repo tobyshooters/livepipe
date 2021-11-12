@@ -91,7 +91,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 if __name__ == "__main__":
     app = tornado.web.Application([
         ("/ws", WSHandler),
-        ("/(.*)", tornado.web.StaticFileHandler, {"path": "./", "default_filename": "ui.html"}), 
-    ])
+        ("/(.*)", tornado.web.StaticFileHandler, {
+            "path": "./", 
+            "default_filename": "ui.html"
+        }), 
+    ], autoreload=True)
     app.listen(1234)
     tornado.ioloop.IOLoop.current().start()
