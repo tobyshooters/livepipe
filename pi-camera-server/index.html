@@ -1,0 +1,32 @@
+<style>
+body {
+    margin: 50px;
+    background-color: #fdf6e3;
+    font-family: monospace;
+    font-size: 18px;
+}
+
+#data {
+    margin-top: 20px;
+    border: dashed 2px black;
+}
+</style>
+
+<body>
+    <h1>PiCamera2 Frame Server</h2>
+    <div><button id="button">Request frame</button></div>
+    <img id="data"></img>
+</body>
+
+<script>
+    const ws = new WebSocket("ws://localhost:1234/ws");
+    ws.onmessage = e => {
+        const data = JSON.parse(e.data);
+        if (data.frame) {
+            document.getElementById("data").src = data.frame;
+        }
+    }
+    document.getElementById("button").onclick = () => {
+        ws.send(JSON.stringify({ type: 'frame' }));
+    }
+</script>
