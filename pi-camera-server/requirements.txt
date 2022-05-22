@@ -1,2 +1,6 @@
-twisted
+twisted 
 autobahn
+opencv-python
+pillow
+picamera2
+numpy

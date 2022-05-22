@@ -16,16 +16,6 @@ def encode_np_array(A, fmt='jpeg'):
     return prefix + b64
 
 
-hog = cv2.HOGDescriptor()
-hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
-
-def detect(img):
-    regions, _ = hog.detectMultiScale(img, winStride=(4, 4), padding=(4, 4), scale=1.05)
-    for (x, y, w, h) in regions:
-        cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-    return img, regions.tolist()
-
-
 class WS(WebSocketServerProtocol):
     def __init__(self):
         super().__init__()
@@ -39,13 +29,11 @@ class WS(WebSocketServerProtocol):
     def onMessage(self, payload, isBinary):
         d = self.read(payload)
         if d["type"] == "frame":
-            img = picam2.capture_array()
-            img = np.ascontiguousarray(img[:, :, :3])
-            img, bounds = detect(img)
+            img = picam2.capture_array()[:, :, :3]
             img = encode_np_array(img)
             self.send({ 
                 "frame": img,
-                "bounds": bounds
+                "bounds": []
             })
 
 

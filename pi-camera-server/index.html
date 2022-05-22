@@ -26,7 +26,14 @@ body {
             document.getElementById("data").src = data.frame;
         }
     }
+
     document.getElementById("button").onclick = () => {
-        ws.send(JSON.stringify({ type: 'frame' }));
+        const stream = () => {
+            ws.send(JSON.stringify({ type: 'frame' }));
+            setTimeout(() => {
+                requestAnimationFrame(stream);
+            }, 1000 / 5)
+        }
+        stream()
     }
 </script>
