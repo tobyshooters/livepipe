@@ -6,7 +6,7 @@ body {
     font-size: 18px;
 }
 
-#data {
+#c {
     margin-top: 20px;
     border: dashed 2px black;
 }
@@ -15,24 +15,47 @@ body {
 <body>
     <h1>PiCamera2 Frame Server</h2>
     <div><button id="button">Request frame</button></div>
-    <img id="data"></img>
+    <canvas id="c"></canvas>
 </body>
 
 <script>
+	const canvas = document.getElementById("c");
+	const dpr = window.devicePixelRatio || 1;
+	canvas.style.width = 640;
+	canvas.style.height = 480;
+
+	canvas.width = 640 * dpr;
+	canvas.height = 480 * dpr;
+
+	const ctx = canvas.getContext('2d');
+	ctx.scale(dpr, dpr);
+
     const ws = new WebSocket("ws://localhost:1234/ws");
     ws.onmessage = e => {
         const data = JSON.parse(e.data);
         if (data.frame) {
-            document.getElementById("data").src = data.frame;
+			const bbox = data.bounds;
+			const img = new Image();
+			img.onload = () => {
+				ctx.drawImage(img, 0, 0, 640, 480);
+				ctx.strokeRect(
+					bbox[0] * 640,
+					bbox[1] * 480,
+					(bbox[2] - bbox[0]) * 640,
+					(bbox[3] - bbox[1]) * 480,
+				)
+
+			}
+			img.src = data.frame;
         }
     }
 
     document.getElementById("button").onclick = () => {
         const stream = () => {
-            ws.send(JSON.stringify({ type: 'frame' }));
             setTimeout(() => {
+                ws.send(JSON.stringify({ type: 'frame' }));
                 requestAnimationFrame(stream);
-            }, 1000 / 5)
+            }, 500)
         }
         stream()
     }

@@ -7,6 +7,11 @@ import base64
 from PIL import Image
 from io import BytesIO
 
+import torch
+from torchvision import models, transforms
+
+model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+
 def encode_np_array(A, fmt='jpeg'):
     image = Image.fromarray(A)
     buf = BytesIO()
@@ -30,11 +35,25 @@ class WS(WebSocketServerProtocol):
         d = self.read(payload)
         if d["type"] == "frame":
             img = picam2.capture_array()[:, :, :3]
-            img = encode_np_array(img)
-            self.send({ 
-                "frame": img,
-                "bounds": []
-            })
+
+            pil = Image.fromarray(img)
+            pil = pil.resize((160, 120))
+
+            output = model(pil, size=160)
+            output.print()
+            pd = output.pandas().xyxyn[0]
+            people = pd.loc[pd['class'] == 0]
+
+            if len(people) > 0:
+                best = people['confidence'].idxmax()
+                person = people.iloc[best]
+                bbox = [x for x in person[["xmin", "ymin", "xmax", "ymax"]]]
+
+                img = encode_np_array(img)
+                self.send({ 
+                    "frame": img,
+                    "bounds": bbox
+                })
 
 
 if __name__ == '__main__':
