@@ -35,6 +35,7 @@ class WS(WebSocketServerProtocol):
         d = self.read(payload)
         if d["type"] == "frame":
             img = picam2.capture_array()[:, :, :3]
+            base64 = encode_np_array(img)
 
             pil = Image.fromarray(img)
             pil = pil.resize((160, 120))
@@ -44,16 +45,14 @@ class WS(WebSocketServerProtocol):
             pd = output.pandas().xyxyn[0]
             people = pd.loc[pd['class'] == 0]
 
+
             if len(people) > 0:
                 best = people['confidence'].idxmax()
-                person = people.iloc[best]
+                person = pd.iloc[best]
                 bbox = [x for x in person[["xmin", "ymin", "xmax", "ymax"]]]
-
-                img = encode_np_array(img)
-                self.send({ 
-                    "frame": img,
-                    "bounds": bbox
-                })
+                self.send({ "frame": base64, "bounds": bbox })
+            else:
+                self.send({ "frame": base64 })
 
 
 if __name__ == '__main__':
