@@ -19,12 +19,9 @@ def space(n):
     post = ' using {control down}'
     return pre + str(17 + n) + post
 
-# run_applescript(space(2))
-
-
 pygame.init()
-w, h = 640, 480
-screen = pygame.display.set_mode((w, h))
+sw, sh = 400, 300
+screen = pygame.display.set_mode((sw, sh))
 
 async def client():
     async with websockets.connect("ws://raspberrypi.local:1234/ws") as ws:
@@ -43,19 +40,31 @@ async def client():
             data = res["frame"][len(prefix):]
             output = io.BytesIO(base64.b64decode(data))
             img = pygame.image.load(output)
+            img = pygame.transform.scale(img, (sw, sh))
             screen.blit(img, (0, 0))
 
             if "bounds" in res:
                 bbox = res["bounds"]
-                x = bbox[0] * 640
-                y = bbox[1] * 480
-                w = (bbox[2] - bbox[0]) * 640
-                h = (bbox[3] - bbox[1]) * 480
+                x = bbox[0] * sw
+                y = bbox[1] * sh
+                w = (bbox[2] - bbox[0]) * sw
+                h = (bbox[3] - bbox[1]) * sh
+
+                pygame.draw.line(screen, (0, 0, 0), (0.6 * sw, 0), (0.6 * sw, sh))
 
                 rect = pygame.Surface((w, h))
                 rect.set_alpha(50)
-                rect.fill((0, 255, 255))
+
+                if x + 0.5 * w < 0.6 * sw:
+                    rect.fill((255, 0, 0))
+                    run_applescript(space(1))
+                else:
+                    rect.fill((0, 255, 255))
+                    run_applescript(space(2))
+
                 screen.blit(rect, (x, y))
+
+                pygame.draw.circle(screen, (0, 255, 0), (x + 0.5 * w, y + 0.5 * h), 3)
 
             pygame.display.update()
             time.sleep(0.5)
