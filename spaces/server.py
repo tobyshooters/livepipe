@@ -10,7 +10,10 @@ from io import BytesIO
 import torch
 from torchvision import models, transforms
 
-model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+predict_people = False
+
+if predict_people:
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
 
 def encode_np_array(A, fmt='jpeg'):
     image = Image.fromarray(A)
@@ -37,22 +40,23 @@ class WS(WebSocketServerProtocol):
             img = picam2.capture_array()[:, :, :3]
             base64 = encode_np_array(img)
 
-            pil = Image.fromarray(img)
-            pil = pil.resize((160, 120))
+            if predict_people:
+                pil = Image.fromarray(img)
+                pil = pil.resize((160, 120))
 
-            output = model(pil, size=160)
-            output.print()
-            pd = output.pandas().xyxyn[0]
-            people = pd.loc[pd['class'] == 0]
+                output = model(pil, size=160)
+                output.print()
+                pd = output.pandas().xyxyn[0]
+                people = pd.loc[pd['class'] == 0]
 
+                if len(people) > 0:
+                    best = people['confidence'].idxmax()
+                    person = pd.iloc[best]
+                    bbox = [x for x in person[["xmin", "ymin", "xmax", "ymax"]]]
+                    self.send({ "frame": base64, "bounds": bbox })
+                    return
 
-            if len(people) > 0:
-                best = people['confidence'].idxmax()
-                person = pd.iloc[best]
-                bbox = [x for x in person[["xmin", "ymin", "xmax", "ymax"]]]
-                self.send({ "frame": base64, "bounds": bbox })
-            else:
-                self.send({ "frame": base64 })
+            self.send({ "frame": base64 })
 
 
 if __name__ == '__main__':
