@@ -42,8 +42,9 @@ if __name__ == '__main__':
     picam2 = Picamera2()
     picam2.start_preview()
 
-    config = picam2.preview_configuration()
+    config = picam2.still_configuration()
     picam2.configure(config)
+    picam2.set_controls({"ExposureTime": 60000})
     picam2.start()
 
     # Server setup

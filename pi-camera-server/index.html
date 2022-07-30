@@ -62,7 +62,7 @@ body {
             ws.send(JSON.stringify({ type: 'frame' }));
             setTimeout(() => {
                 requestAnimationFrame(stream);
-            }, 1000)
+            }, 2000)
         }
         stream();
     }
